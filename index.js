@@ -61,7 +61,8 @@ client.on("message", async message => {
             "**" + config.prefix + "user** {***user_name***} : create new or update existing user with the name, *user_name*.\n" +
             "**" + config.prefix + "teams** : see all teams and players currently in Team Creator.\n" +
             "**" + config.prefix + "assign** {***user_name***} {***team_name***} : moves user *user_name* to team *team_name*.\n" +
-            "**" + config.prefix + "rename** {***team_original_name***} {***team_new_name***}: rename a team's name.\n"
+            "**" + config.prefix + "rename** {***team_original_name***} {***team_new_name***}: rename a team's name.\n" +
+            "**" + config.prefix + "link** {***link url***}: set the url for the game, if any.\n"
         );
     }
 
@@ -99,7 +100,7 @@ client.on("message", async message => {
 
     if (command === "teams") {
         let total = "\n";
-        if(gamelink) total += "Link: " + gamelink + "\n";
+        if(gamelink) total += "Link: <" + gamelink + ">\n\n";
 
         for (let team in teams) {
             if(team !== "N/A" && team !== "AFK"){
@@ -176,6 +177,13 @@ client.on("message", async message => {
         message.channel.send(
             "Team **" + ogName + "** has successfully been updated to team **" + newName + "**."
         );
+    }
+
+    if (command === "link") {
+        let content = args.join(" ");
+        gamelink = content;
+
+        message.channel.send("Link has been updated.");
     }
 });
 
