@@ -1,0 +1,29 @@
+{
+  "name": "Team-Creator",
+  "version": "1.0.0",
+  "description": "Discord Bot to create teams",
+  "main": "index.js",
+  "dependencies": {
+    "discord.js": "^12.1.1",
+    "dotenv": "^8.2.0",
+    "file-system": "^2.2.2"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.2"
+  },
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/magikarpp/Team-Creator.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/magikarpp/Team-Creator/issues"
+  },
+  "homepage": "https://github.com/magikarpp/Team-Creator#readme"
+}
