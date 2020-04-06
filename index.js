@@ -25,7 +25,6 @@ client.on("ready", () => {
 
 let gamelink = "";
 let playerUser = {};
-let playerPool = [];
 let teams = {
     "Team1": {
         "users": [],
@@ -60,9 +59,17 @@ client.on("message", async message => {
             "**" + config.prefix + "help** : show command options for bot.\n" +
             "**" + config.prefix + "user** {***user_name***} : create new or update existing user with the name, *user_name*.\n" +
             "**" + config.prefix + "teams** : see all teams and players currently in Team Creator.\n" +
-            "**" + config.prefix + "assign** {***user_name***} {***team_name***} : moves user *user_name* to team *team_name*.\n" +
-            "**" + config.prefix + "rename** {***team_original_name***} {***team_new_name***}: rename a team's name.\n" +
-            "**" + config.prefix + "link** {***link url***}: set the url for the game, if any.\n"
+            "**" + config.prefix + "assign** full : assigns all users (including users already in a team) to random teams.\n" +
+            "**" + config.prefix + "assign** auto : automatically assign all unassigned users to available teams randomly.\n" +
+            "**" + config.prefix + "assign** manual {***user_name***} {***team_name***} : moves single user *user_name* to team *team_name*.\n" +
+            "**" + config.prefix + "unassign** : unassigns all users in teams.\n" +
+            "**" + config.prefix + "rename** {***team_original_name***} {***team_new_name***} : rename a team's name.\n" +
+            "**" + config.prefix + "link** {***link url***} : set the url for the game, if any.\n" +
+            "**" + config.prefix + "create auto** {***integer***} : create *integer* amount of teams that are evenly divided and have no user limits.\n" +
+            "**" + config.prefix + "create manual** {***team_name***} {***integer***} ... : create teams with *team_name* and max user count of *integer*.\n" +
+            "Ex. " + config.prefix + "create manual RedTeam 3 BlueTeam 3 Host 1\n- Creates 3 teams; RedTeam, BlueTeam and Host. RedTeam and BlueTeam can have 3 users in their team while Host can only have 1.\n" +
+            "Ex. " + config.prefix + "create manual Hooligans -1 Goons -1 Pigeon 1 Potatoes 2\n- Teams Hooligans and Goons can have unrestricted amounts of users while Pigeon and Potatoes can only have 1 and 2 respectively.\n" +
+            ""
         );
     }
 
@@ -99,51 +106,38 @@ client.on("message", async message => {
     }
 
     if (command === "teams") {
-        let total = "\n";
-        if(gamelink) total += "Link: <" + gamelink + ">\n\n";
-
-        for (let team in teams) {
-            if(team !== "N/A" && team !== "AFK"){
-                printTeams(team);
-            }
-        }
-        for (let team in teams) {
-            if(team === "N/A" || team === "AFK"){
-                printTeams(team);
-            }
-        }
-        // total += "Total = " + Object.keys(playerUser).length +"\n";
-
         message.channel.send(
-            total
+            displayTeams()
         );
-
-        function printTeams(team){
-            if (teams.hasOwnProperty(team)) {
-                total += "**" + team + ":**\n";
-
-                teams[team]["users"].forEach(p => {
-                    total += p + "\n";
-                });
-            }
-            total += "\n";
-        }
     }
 
     if (command === "assign") {
-        let username = command1;
-        let teamname = command2;
+        let type = command1;
+        let username = command2;
+        let teamname = command3;
 
-        if (!doesUsernameExist(username, message) || !doesTeamnameExist(teamname, message)) {
-            return;
+        if (type === "full") {
+            unassignAllUsers();
+            assignAllUsers(message, false);
+            let total = displayTeams() + "All users have been shuffled into teams.";
+            message.channel.send(total);
         }
 
-        removeUserFromTeams(username);
-        teams[teamname]["users"].push(username);
+        if (type === "auto") {
+            assignAllUsers(message, false);
+            let total = displayTeams() + "All remaining users have been shuffled into teams.";
+            message.channel.send(total);
+        }
 
-        message.channel.send(
-            "User **" + username + "** has successfully been moved to team **" + teamname + "**."
-        );
+        if (type === "manual") {
+            assignUserToTeam(username, teamname, message, true);
+        }
+    }
+
+    if (command === "unassign") {
+        unassignAllUsers();
+
+        message.channel.send("All users have been sucessfully unassigned.");
     }
 
     if (command === "rename") {
@@ -154,7 +148,7 @@ client.on("message", async message => {
             message.channel.send("Team names cannot contain spaces.\nPlease try again with a different name.");
             return;
         }
-        if(ogName === "N/A" || ogName === "AFK"){
+        if (ogName === "N/A" || ogName === "AFK") {
             message.channel.send("Team name **" + ogName + "** is not allowed to be changed.");
             return;
         }
@@ -185,6 +179,10 @@ client.on("message", async message => {
 
         message.channel.send("Link has been updated.");
     }
+
+    if (command === "create") {
+
+    }
 });
 
 function getKeyByValue(object, value) {
@@ -206,6 +204,108 @@ function removeUserFromTeams(username, update) {
         }
         if (found) break;
     }
+}
+
+function displayTeams(){
+    let total = " \n";
+        if (gamelink && gamelink.length > 0) total += "Link: <" + gamelink + ">\n\n";
+
+        for (let team in teams) {
+            if (team !== "N/A" && team !== "AFK") {
+                printTeams(team);
+            }
+        }
+        for (let team in teams) {
+            if (team === "N/A" || team === "AFK") {
+                printTeams(team);
+            }
+        }
+        // total += "Total = " + Object.keys(playerUser).length +"\n";
+
+        return total;
+
+        function printTeams(team) {
+            if (teams.hasOwnProperty(team)) {
+                let count = "";
+                if (team["count"] && team["count"] != -1) {
+                    count = " (" + team["count"] + ")";
+                }
+                total += "**" + team + count + ":**\n";
+
+                teams[team]["users"].forEach(p => {
+                    total += p + "\n";
+                });
+            }
+            total += "\n";
+        }
+}
+
+function unassignAllUsers() {
+    for (let team in teams) {
+        if (team != "N/A" && team != "AFK") {
+            if (teams.hasOwnProperty(team)) {
+                teams["N/A"]["users"] = teams["N/A"]["users"].concat(teams[team]["users"]);
+                teams[team]["users"] = [];
+            }
+        }
+    }
+}
+
+function assignAllUsers(message, msg) {
+    let allUsers = shuffleArray(teams["N/A"]["users"].slice());
+
+    allUsers.forEach(u => {
+        assignUserToTeam(u, undefined, message, msg);
+    });
+}
+
+function assignUserToTeam(username, teamname, message, msg) {
+    if (!doesUsernameExist(username, message, msg) || teamname ? !doesTeamnameExist(teamname, message, msg) : false) {
+        return;
+    }
+
+    if (teamname) {
+        if (teams[teamname]["count"] == -1 || teams[teamname]["users"].length < teams[teamname]["count"]) {
+            removeUserFromTeams(username);
+            teams[teamname]["users"].push(username);
+
+            if (msg) {
+                message.channel.send(
+                    "User **" + username + "** has successfully been moved to team **" + teamname + "**."
+                );
+            }
+        } else {
+            if (msg) {
+                message.channel.send(
+                    "Team **" + teamname + "** is already full. Please select a different team."
+                );
+            }
+
+        }
+    } else {
+        let lowest;
+        let lowCount;
+
+        for (let team in teams) {
+            if (team != "N/A" && team != "AFK") {
+                if (teams.hasOwnProperty(team)) {
+                    let teamMax = teams[team]["count"];
+                    let teamLength = teams[team]["users"].length;
+                    if (teamMax === -1) teamMax = 256;
+
+                    if (lowCount == undefined || (teamLength < teamMax && teamLength < lowCount)) {
+                        lowCount = teamLength;
+                        lowest = team;
+                    }
+                }
+            }
+        }
+
+        removeUserFromTeams(username);
+        teams[lowest]["users"].push(username);
+        if (msg) message.channel.send("User **" + username + "** has been added to Team **" + lowest + "**.");
+    }
+
 }
 
 function doesUsernameExist(username, message, msg = true) {
@@ -230,12 +330,27 @@ function doesTeamnameExist(teamname, message, msg = true) {
     } else return true;
 }
 
-function renameKey(obj, oldk, newk){
+function renameKey(obj, oldk, newk) {
     if (oldk !== newk) {
         Object.defineProperty(obj, newk,
             Object.getOwnPropertyDescriptor(obj, oldk));
         delete obj[oldk];
     }
+}
+
+function shuffleArray(array) {
+    var currentIndex = array.length, temporaryValue, randomIndex;
+
+    while (0 !== currentIndex) {
+        randomIndex = Math.floor(Math.random() * currentIndex);
+        currentIndex -= 1;
+
+        temporaryValue = array[currentIndex];
+        array[currentIndex] = array[randomIndex];
+        array[randomIndex] = temporaryValue;
+    }
+
+    return array;
 }
 
 client.login(config.token);
