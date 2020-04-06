@@ -23,6 +23,7 @@ client.on("ready", () => {
 
 });
 
+let gamelink = "";
 let playerUser = {};
 let playerPool = [];
 let teams = {
@@ -51,6 +52,7 @@ client.on("message", async message => {
     let command = args.shift().toLowerCase();
     let command1 = args[0];
     let command2 = args[1];
+    let command3 = args[2];
 
     if (command === "help") {
         message.channel.send(
@@ -58,7 +60,8 @@ client.on("message", async message => {
             "**" + config.prefix + "help** : show command options for bot.\n" +
             "**" + config.prefix + "user** {***user_name***} : create new or update existing user with the name, *user_name*.\n" +
             "**" + config.prefix + "teams** : see all teams and players currently in Team Creator.\n" +
-            "**" + config.prefix + "assign** {***user_name***} {***team_name***} : moves user *user_name* to team *team_name*.\n"
+            "**" + config.prefix + "assign** {***user_name***} {***team_name***} : moves user *user_name* to team *team_name*.\n" +
+            "**" + config.prefix + "rename** {***team_original_name***} {***team_new_name***}: rename a team's name.\n"
         );
     }
 
@@ -90,14 +93,31 @@ client.on("message", async message => {
             playerUser[username] = message.author;
             message.channel.send("You have sucessfully been *" + action + "* as user: **" + username + "**");
         } else {
-            message.channel.send("The username, **" + username + "**, has already been taken.\nPlease try again with a different username.");
+            message.channel.send("User **" + username + "** already exists.\nPlease try again with a different username.");
         }
     }
 
     if (command === "teams") {
         let total = "\n";
+        if(gamelink) total += "Link: " + gamelink + "\n";
 
         for (let team in teams) {
+            if(team !== "N/A" && team !== "AFK"){
+                printTeams(team);
+            }
+        }
+        for (let team in teams) {
+            if(team === "N/A" || team === "AFK"){
+                printTeams(team);
+            }
+        }
+        // total += "Total = " + Object.keys(playerUser).length +"\n";
+
+        message.channel.send(
+            total
+        );
+
+        function printTeams(team){
             if (teams.hasOwnProperty(team)) {
                 total += "**" + team + ":**\n";
 
@@ -107,11 +127,6 @@ client.on("message", async message => {
             }
             total += "\n";
         }
-        // total += "Total = " + Object.keys(playerUser).length +"\n";
-
-        message.channel.send(
-            total
-        );
     }
 
     if (command === "assign") {
@@ -127,6 +142,39 @@ client.on("message", async message => {
 
         message.channel.send(
             "User **" + username + "** has successfully been moved to team **" + teamname + "**."
+        );
+    }
+
+    if (command === "rename") {
+        let ogName = command1;
+        let newName = command2;
+
+        if (command3) {
+            message.channel.send("Team names cannot contain spaces.\nPlease try again with a different name.");
+            return;
+        }
+        if(ogName === "N/A" || ogName === "AFK"){
+            message.channel.send("Team name **" + ogName + "** is not allowed to be changed.");
+            return;
+        }
+        if (newName.length > 15 || newName.length < 2) {
+            message.channel.send("Team names must be between 3 and 15 characters long.\nPlease try again with a different name.");
+            return;
+        }
+        if (!doesTeamnameExist(ogName, message)) {
+            return;
+        }
+        if (doesTeamnameExist(newName, message, false)) {
+            message.channel.send(
+                "Team **" + newName + "** already exists. Please try again with a different name."
+            );
+            return;
+        }
+
+        renameKey(teams, ogName, newName);
+
+        message.channel.send(
+            "Team **" + ogName + "** has successfully been updated to team **" + newName + "**."
         );
     }
 });
@@ -156,7 +204,7 @@ function doesUsernameExist(username, message, msg = true) {
     if (!playerUser[username]) {
         if (msg) {
             message.channel.send(
-                "User, **" + username + "** does not exist. Please try again."
+                "User **" + username + "** does not exist. Please try again."
             );
         }
         return false;
@@ -167,11 +215,19 @@ function doesTeamnameExist(teamname, message, msg = true) {
     if (!teams[teamname]) {
         if (msg) {
             message.channel.send(
-                "Team, **" + teamname + "** does not exist. Please try again."
+                "Team **" + teamname + "** does not exist. Please try again."
             );
         }
         return false;
     } else return true;
+}
+
+function renameKey(obj, oldk, newk){
+    if (oldk !== newk) {
+        Object.defineProperty(obj, newk,
+            Object.getOwnPropertyDescriptor(obj, oldk));
+        delete obj[oldk];
+    }
 }
 
 client.login(config.token);
