@@ -69,6 +69,7 @@ client.on("message", async message => {
             "**" + config.prefix + "create manual** {***team_name***} {***integer***} ... : create teams with *team_name* and max user count of *integer*.\n" +
             "Ex. " + config.prefix + "create manual Red 3 Blue 3 Host 1\n- Creates 3 teams; Red, Blue and Host. Red and Blue can have 3 users in their team while Host can only have 1.\n" +
             "Ex. " + config.prefix + "create manual Hooligans -1 Goons -1 Pigeon 1 Potatoes 2\n- Teams Hooligans and Goons can have unrestricted amounts of users while Pigeon and Potatoes can only have 1 and 2 respectively.\n" +
+            "**" + config.prefix + "play codenames** : sets up Team Creator to play CodeNames.\n" +
             ""
         );
     }
@@ -240,6 +241,33 @@ client.on("message", async message => {
             }
             message.channel.send("**" + checker.length + "** teams have been created.");
         }
+    }
+
+    if (command === "play") {
+        if(command1 === "codenames"){
+            unassignAllUsers();
+            removeAllTeams();
+
+            teams["RedSpyMaster"] = {
+                "users": [],
+                "count": 1
+            }
+            teams["Red"] = {
+                "users": [],
+                "count": -1
+            }
+            teams["BlueSpyMaster"] = {
+                "users": [],
+                "count": 1
+            }
+            teams["Blue"] = {
+                "users": [],
+                "count": -1
+            }
+            message.channel.send("Team Creator has been set up with CodeNames settings.");
+        }
+
+        
     }
 });
 
