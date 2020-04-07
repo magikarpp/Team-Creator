@@ -67,7 +67,7 @@ client.on("message", async message => {
             "**" + config.prefix + "link** {***link url***} : set the url for the game, if any.\n" +
             "**" + config.prefix + "create auto** {***integer***} : create *integer* amount of teams that are evenly divided and have no user limits.\n" +
             "**" + config.prefix + "create manual** {***team_name***} {***integer***} ... : create teams with *team_name* and max user count of *integer*.\n" +
-            "Ex. " + config.prefix + "create manual RedTeam 3 BlueTeam 3 Host 1\n- Creates 3 teams; RedTeam, BlueTeam and Host. RedTeam and BlueTeam can have 3 users in their team while Host can only have 1.\n" +
+            "Ex. " + config.prefix + "create manual Red 3 Blue 3 Host 1\n- Creates 3 teams; Red, Blue and Host. Red and Blue can have 3 users in their team while Host can only have 1.\n" +
             "Ex. " + config.prefix + "create manual Hooligans -1 Goons -1 Pigeon 1 Potatoes 2\n- Teams Hooligans and Goons can have unrestricted amounts of users while Pigeon and Potatoes can only have 1 and 2 respectively.\n" +
             ""
         );
