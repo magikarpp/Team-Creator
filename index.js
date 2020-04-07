@@ -9,12 +9,12 @@ client.on("ready", () => {
     console.log("started...\nTesting: " + testing);
 
     if (testing) {
-        for (let i = 1; i < 7; i++) {
+        for (let i = 1; i < 10; i++) {
             let username = "Tester" + i;
             playerUser[username] = "id" + i;
             teams["N/A"]["users"].push(username);
         }
-        for (let i = 7; i < 9; i++) {
+        for (let i = 10; i < 13; i++) {
             let username = "Tester" + i;
             playerUser[username] = "id" + i;
             teams["AFK"]["users"].push(username);
@@ -99,7 +99,7 @@ client.on("message", async message => {
                 teams["N/A"]["users"].push(username);
             }
             playerUser[username] = message.author;
-            message.channel.send("You have sucessfully been *" + action + "* as user: **" + username + "**");
+            message.channel.send("You have been *" + action + "* as user: **" + username + "**");
         } else {
             message.channel.send("User **" + username + "** already exists.\nPlease try again with a different username.");
         }
@@ -137,7 +137,7 @@ client.on("message", async message => {
     if (command === "unassign") {
         unassignAllUsers();
 
-        message.channel.send("All users have been sucessfully unassigned.");
+        message.channel.send("All users have been unassigned.");
     }
 
     if (command === "rename") {
@@ -181,7 +181,65 @@ client.on("message", async message => {
     }
 
     if (command === "create") {
+        let type = command1;
 
+        if (type === "auto") {
+            if (!isNaN(command2) && (parseInt(command2) <= 15 && parseInt(command2) > 1)) {
+                unassignAllUsers();
+                removeAllTeams();
+
+                for (let i = 1; i < parseInt(command2) + 1; i++) {
+                    teams["Team" + i] = {
+                        "users": [],
+                        "count": -1
+                    }
+                }
+
+                message.channel.send("**" + command2 + "** teams have been created.");
+                return
+            } else {
+                message.channel.send("You must enter an integer value between 2 and 15 to create teams. Please try again.");
+                return;
+            }
+        }
+
+        if (type === "manual") {
+            args.shift();
+            let checker = [];
+            for (let i = 0; i < args.length; i++) {
+                if (i % 2) {
+                    if (isNaN(args[i]) || (parseInt(args[i]) < 1 && parseInt(args[i]) != -1)) {
+                        message.channel.send("Every team must have an integer value greater than 1 (or -1 for no limit) representing its max count. Please try again.");
+                        return;
+                    }
+                } else {
+                    if (args[i] === "N/A" || args[i] === "AFK") {
+                        message.channel.send("Team name **" + args[i] + "** is not allowed as a name.");
+                        return;
+                    }
+                    if (args[i].length > 15 || args[i].length < 2) {
+                        message.channel.send("Team names must be between 3 and 15 characters long.\nPlease try again with a different name.");
+                        return;
+                    }
+                    checker.push(args[i]);
+                }
+            }
+
+            if (new Set(checker).size !== checker.length) {
+                message.channel.send("Team names cannot be duplicates.\nPlease try again with a different name.");
+                return;
+            }
+
+            unassignAllUsers();
+            removeAllTeams();
+            for (let i = 0; i < args.length; i = i + 2) {
+                teams[args[i]] = {
+                    "users": [],
+                    "count": parseInt(args[i + 1])
+                }
+            }
+            message.channel.send("**" + checker.length + "** teams have been created.");
+        }
     }
 });
 
@@ -206,38 +264,41 @@ function removeUserFromTeams(username, update) {
     }
 }
 
-function displayTeams(){
+function displayTeams() {
     let total = " \n";
-        if (gamelink && gamelink.length > 0) total += "Link: <" + gamelink + ">\n\n";
+    if (gamelink && gamelink.length > 0) total += "Link: <" + gamelink + ">\n\n";
 
-        for (let team in teams) {
-            if (team !== "N/A" && team !== "AFK") {
-                printTeams(team);
-            }
+    for (let team in teams) {
+        if (team !== "N/A" && team !== "AFK") {
+            printTeams(team);
         }
-        for (let team in teams) {
-            if (team === "N/A" || team === "AFK") {
-                printTeams(team);
-            }
+    }
+
+    total += "----------\n"
+
+    for (let team in teams) {
+        if (team === "N/A" || team === "AFK") {
+            printTeams(team);
         }
-        // total += "Total = " + Object.keys(playerUser).length +"\n";
+    }
+    // total += "Total = " + Object.keys(playerUser).length +"\n";
 
-        return total;
+    return total;
 
-        function printTeams(team) {
-            if (teams.hasOwnProperty(team)) {
-                let count = "";
-                if (team["count"] && team["count"] != -1) {
-                    count = " (" + team["count"] + ")";
-                }
-                total += "**" + team + count + ":**\n";
-
-                teams[team]["users"].forEach(p => {
-                    total += p + "\n";
-                });
+    function printTeams(team) {
+        if (teams.hasOwnProperty(team)) {
+            let count = "";
+            if (teams[team]["count"] && teams[team]["count"] != -1) {
+                count = "** (" + teams[team]["count"] + ")**";
             }
-            total += "\n";
+            total += "**" + team + count + ":**\n";
+
+            teams[team]["users"].forEach(p => {
+                total += p + "\n";
+            });
         }
+        total += "\n";
+    }
 }
 
 function unassignAllUsers() {
@@ -271,7 +332,7 @@ function assignUserToTeam(username, teamname, message, msg) {
 
             if (msg) {
                 message.channel.send(
-                    "User **" + username + "** has successfully been moved to team **" + teamname + "**."
+                    "User **" + username + "** has been moved to team **" + teamname + "**."
                 );
             }
         } else {
@@ -291,9 +352,9 @@ function assignUserToTeam(username, teamname, message, msg) {
                 if (teams.hasOwnProperty(team)) {
                     let teamMax = teams[team]["count"];
                     let teamLength = teams[team]["users"].length;
-                    if (teamMax === -1) teamMax = 256;
+                    if (teamMax === -1) teamMax = 9999;
 
-                    if (lowCount == undefined || (teamLength < teamMax && teamLength < lowCount)) {
+                    if ((lowCount == undefined || teamLength < lowCount) && teamLength < teamMax) {
                         lowCount = teamLength;
                         lowest = team;
                     }
@@ -301,11 +362,23 @@ function assignUserToTeam(username, teamname, message, msg) {
             }
         }
 
+        if(!lowest) lowest = "N/A";
+
         removeUserFromTeams(username);
         teams[lowest]["users"].push(username);
         if (msg) message.channel.send("User **" + username + "** has been added to Team **" + lowest + "**.");
     }
 
+}
+
+function removeAllTeams() {
+    for (let team in teams) {
+        if (team != "N/A" && team != "AFK") {
+            if (teams.hasOwnProperty(team)) {
+                delete teams[team];
+            }
+        }
+    }
 }
 
 function doesUsernameExist(username, message, msg = true) {
