@@ -71,9 +71,8 @@ client.on("message", async message => {
             "Ex. " + config.prefix + "create manual Hooligans -1 Goons -1 Pigeon 1 Potatoes 2\n- Teams Hooligans and Goons can have unrestricted amounts of users while Pigeon and Potatoes can only have 1 and 2 respectively.\n" +
             "\n" +
             "**" + config.prefix + "play codenames** : sets up Team Creator to play CodeNames.\n" +
-            "**" + config.prefix + "play rps** {***user_name***}: play rock paper scissors against *user_name*.\n" +
-            "**" + config.prefix + "random user: display a random *user_name*.\n" +
-            "**" + config.prefix + "random number {***lower_bound***} {***upper_bound***}: display a random number between *lower_bound* and *upper_bound*.\n" +
+            "**" + config.prefix + "random user** : display a random *user_name*.\n" +
+            "**" + config.prefix + "random number** {***lower_bound***} {***upper_bound***} : display a random number between *lower_bound* and *upper_bound*.\n" +
             ""
         );
     }
@@ -248,7 +247,7 @@ client.on("message", async message => {
     }
 
     if (command === "play") {
-        if(command1 === "codenames"){
+        if (command1 === "codenames") {
             unassignAllUsers();
             removeAllTeams();
 
@@ -270,30 +269,19 @@ client.on("message", async message => {
             }
             message.channel.send("Team Creator has been set up with CodeNames settings.");
         }
-        if(command1 === "rps"){
-            let player = playerUser[message.author];
-            let opponent = command2;
-
-            if(doesUsernameExist(opponent, message)){
-                client.users.get(playerUser[opponent]).send(
-                    "You have been challenged to Rock Paper Scissors By **" + player + "**!\n" +
-                    "Please respond in a common discord server between both players.\n"
-                );
-            }
-        }
     }
 
     if (command === "random") {
-        if(command1 === "user"){
+        if (command1 === "user") {
             message.channel.send("Here is a randomly selected user: **" + shuffleArray(Object.keys(playerUser).slice())[0] + "**.");
         }
-        if(command1 === "number"){
+        if (command1 === "number") {
             let lower = parseInt(command2);
             let upper = parseInt(command3);
 
-            if(!isNaN(lower) && !isNaN(upper) && lower > 0 && upper > lower){
+            if (!isNaN(lower) && !isNaN(upper) && lower > 0 && upper > lower) {
                 message.channel.send("Here is a randomly selected number: **" + (Math.floor(Math.random() * (upper - lower + 1)) + lower) + "**.");
-            } else{
+            } else {
                 message.channel.send("Not a valid input. Please try again.");
             }
         }
@@ -419,7 +407,7 @@ function assignUserToTeam(username, teamname, message, msg) {
             }
         }
 
-        if(!lowest) lowest = "N/A";
+        if (!lowest) lowest = "N/A";
 
         removeUserFromTeams(username);
         teams[lowest]["users"].push(username);
