@@ -3,7 +3,7 @@ const Discord = require("discord.js");
 
 const client = new Discord.Client();
 
-let testing = true;
+let testing = false;
 
 client.on("ready", () => {
     console.log("started...\nTesting: " + testing);
@@ -43,249 +43,382 @@ let teams = {
         "count": -1
     }
 };
+let rps = {};
 
 client.on("message", async message => {
-    if (message.author.bot || message.content.indexOf(config.prefix) !== 0) return;
+    try {
+        if (message.author.id.bot || message.content.indexOf(config.prefix) !== 0) return;
 
-    let args = message.content.slice(config.prefix.length).trim().split(/ +/g);
-    let command = args.shift().toLowerCase();
-    let command1 = args[0];
-    let command2 = args[1];
-    let command3 = args[2];
+        let args = message.content.slice(config.prefix.length).trim().split(/ +/g);
+        let command = args.shift().toLowerCase();
+        let command1 = args[0];
+        let command2 = args[1];
+        let command3 = args[2];
 
-    if (command === "help") {
-        message.channel.send(
-            "**List of Commands:**\n\n" +
-            "**" + config.prefix + "help** : show command options for bot.\n" +
-            "**" + config.prefix + "user** {***user_name***} : create new or update existing user with the name, *user_name*.\n" +
-            "**" + config.prefix + "teams** : see all teams and players currently in Team Creator.\n" +
-            "**" + config.prefix + "assign** full : assigns all users (including users already in a team) to random teams.\n" +
-            "**" + config.prefix + "assign** auto : automatically assign all unassigned users to available teams randomly.\n" +
-            "**" + config.prefix + "assign** manual {***user_name***} {***team_name***} : moves single user *user_name* to team *team_name*.\n" +
-            "**" + config.prefix + "unassign** : unassigns all users in teams.\n" +
-            "**" + config.prefix + "rename** {***team_original_name***} {***team_new_name***} : rename a team's name.\n" +
-            "**" + config.prefix + "link** {***link url***} : set the url for the game, if any.\n" +
-            "**" + config.prefix + "create auto** {***integer***} : create *integer* amount of teams that are evenly divided and have no user limits.\n" +
-            "**" + config.prefix + "create manual** {***team_name***} {***integer***} ... : create teams with *team_name* and max user count of *integer*.\n" +
-            "Ex. " + config.prefix + "create manual Red 3 Blue 3 Host 1\n- Creates 3 teams; Red, Blue and Host. Red and Blue can have 3 users in their team while Host can only have 1.\n" +
-            "Ex. " + config.prefix + "create manual Hooligans -1 Goons -1 Pigeon 1 Potatoes 2\n- Teams Hooligans and Goons can have unrestricted amounts of users while Pigeon and Potatoes can only have 1 and 2 respectively.\n" +
-            "\n" +
-            "**" + config.prefix + "play codenames** : sets up Team Creator to play CodeNames.\n" +
-            "**" + config.prefix + "random user** : display a random *user_name*.\n" +
-            "**" + config.prefix + "random number** {***lower_bound***} {***upper_bound***} : display a random number between *lower_bound* and *upper_bound*.\n" +
-            ""
-        );
-    }
-
-    if (command === "user") {
-        let username = command1;
-
-        if (command2) {
-            message.channel.send("Your username cannot contain spaces.\nPlease try again with a different username.");
-            return;
-        }
-        if (username.length > 15 || username.length < 2) {
-            message.channel.send("Your username must be between 3 and 15 characters long.\nPlease try again with a different username.");
-            return;
-        }
-
-        if (!playerUser[username]) {
-            let action = "added";
-
-            let ogUsername = getKeyByValue(playerUser, message.author);
-            if (ogUsername) {
-                removeUserFromTeams(ogUsername, username);
-                delete playerUser[ogUsername];
-                action = "updated";
-            }
-
-            if (action === "added") {
-                teams["N/A"]["users"].push(username);
-            }
-            playerUser[username] = message.author;
-            message.channel.send("You have been *" + action + "* as user: **" + username + "**");
-        } else {
-            message.channel.send("User **" + username + "** already exists.\nPlease try again with a different username.");
-        }
-    }
-
-    if (command === "teams") {
-        message.channel.send(
-            displayTeams()
-        );
-    }
-
-    if (command === "assign") {
-        let type = command1;
-        let username = command2;
-        let teamname = command3;
-
-        if (type === "full") {
-            unassignAllUsers();
-            assignAllUsers(message, false);
-            let total = displayTeams() + "All users have been shuffled into teams.";
-            message.channel.send(total);
-        }
-
-        if (type === "auto") {
-            assignAllUsers(message, false);
-            let total = displayTeams() + "All remaining users have been shuffled into teams.";
-            message.channel.send(total);
-        }
-
-        if (type === "manual") {
-            assignUserToTeam(username, teamname, message, true);
-        }
-    }
-
-    if (command === "unassign") {
-        unassignAllUsers();
-
-        message.channel.send("All users have been unassigned.");
-    }
-
-    if (command === "rename") {
-        let ogName = command1;
-        let newName = command2;
-
-        if (command3) {
-            message.channel.send("Team names cannot contain spaces.\nPlease try again with a different name.");
-            return;
-        }
-        if (ogName === "N/A" || ogName === "AFK") {
-            message.channel.send("Team name **" + ogName + "** is not allowed to be changed.");
-            return;
-        }
-        if (newName.length > 15 || newName.length < 2) {
-            message.channel.send("Team names must be between 3 and 15 characters long.\nPlease try again with a different name.");
-            return;
-        }
-        if (!doesTeamnameExist(ogName, message)) {
-            return;
-        }
-        if (doesTeamnameExist(newName, message, false)) {
+        if (command === "help") {
             message.channel.send(
-                "Team **" + newName + "** already exists. Please try again with a different name."
+                "**List of Commands:**\n\n" +
+                "**" + config.prefix + "help** : show command options for bot.\n" +
+                "**" + config.prefix + "user** {***user_name***} : create new or update existing user with the name, *user_name*.\n" +
+                "**" + config.prefix + "teams** : see all teams and players currently in Team Creator.\n" +
+                "**" + config.prefix + "assign full** : assigns all users (including users already in a team) to random teams.\n" +
+                "**" + config.prefix + "assign auto** : automatically assign all unassigned users to available teams randomly.\n" +
+                "**" + config.prefix + "assign manual** {***user_name***} {***team_name***} : moves single user *user_name* to team *team_name*.\n" +
+                "**" + config.prefix + "unassign** : unassigns all users in teams.\n" +
+                "**" + config.prefix + "rename** {***team_original_name***} {***team_new_name***} : rename a team's name.\n" +
+                "**" + config.prefix + "link** {***link url***} : set the url for the game, if any.\n" +
+                "**" + config.prefix + "create auto** {***integer***} : create *integer* amount of teams that are evenly divided and have no user limits.\n" +
+                "**" + config.prefix + "create manual** {***team_name***} {***integer***} ... : create teams with *team_name* and max user count of *integer*.\n" +
+                "Ex. " + config.prefix + "create manual Red 3 Blue 3 Host 1\n- Creates 3 teams; Red, Blue and Host. Red and Blue can have 3 users in their team while Host can only have 1.\n" +
+                "Ex. " + config.prefix + "create manual Hooligans -1 Goons -1 Pigeon 1 Potatoes 2\n- Teams Hooligans and Goons can have unrestricted amounts of users while Pigeon and Potatoes can only have 1 and 2 respectively.\n" +
+                "\n" +
+                "**" + config.prefix + "play codenames** : sets up Team Creator to play CodeNames.\n" +
+                "**" + config.prefix + "play rps** {***user_name***} : play rock paper scissors against *user_name*.\n" +
+                "**" + config.prefix + "random user** : display a random *user_name*.\n" +
+                "**" + config.prefix + "random number** {***lower_bound***} {***upper_bound***} : display a random number between *lower_bound* and *upper_bound*.\n" +
+                ""
             );
-            return;
         }
 
-        renameKey(teams, ogName, newName);
+        if (command === "user") {
+            let username = command1;
 
-        message.channel.send(
-            "Team **" + ogName + "** has successfully been updated to team **" + newName + "**."
-        );
-    }
+            if (command2) {
+                message.channel.send("Your username cannot contain spaces.\nPlease try again with a different username.");
+                return;
+            }
+            if (username.length > 15 || username.length < 2) {
+                message.channel.send("Your username must be between 3 and 15 characters long.\nPlease try again with a different username.");
+                return;
+            }
 
-    if (command === "link") {
-        let content = args.join(" ");
-        gamelink = content;
+            if (!playerUser[username]) {
+                let action = "added";
 
-        message.channel.send("Link has been updated.");
-    }
+                let ogUsername = getKeyByValue(playerUser, message.author.id);
+                if (ogUsername) {
+                    removeUserFromTeams(ogUsername, username);
+                    delete playerUser[ogUsername];
+                    action = "updated";
+                }
 
-    if (command === "create") {
-        let type = command1;
+                if (action === "added") {
+                    teams["N/A"]["users"].push(username);
+                }
+                playerUser[username] = message.author.id;
+                message.channel.send("You have been *" + action + "* as user: **" + username + "**");
+            } else {
+                message.channel.send("User **" + username + "** already exists.\nPlease try again with a different username.");
+            }
+        }
 
-        if (type === "auto") {
-            if (!isNaN(command2) && (parseInt(command2) <= 15 && parseInt(command2) > 1)) {
+        if (command === "teams") {
+            message.channel.send(
+                displayTeams()
+            );
+        }
+
+        if (command === "assign") {
+            let type = command1;
+            let username = command2;
+            let teamname = command3;
+
+            if (type === "full") {
+                unassignAllUsers();
+                assignAllUsers(message, false);
+                let total = displayTeams() + "All users have been shuffled into teams.";
+                message.channel.send(total);
+            }
+
+            if (type === "auto") {
+                assignAllUsers(message, false);
+                let total = displayTeams() + "All remaining users have been shuffled into teams.";
+                message.channel.send(total);
+            }
+
+            if (type === "manual") {
+                assignUserToTeam(username, teamname, message, true);
+            }
+        }
+
+        if (command === "unassign") {
+            unassignAllUsers();
+
+            message.channel.send("All users have been unassigned.");
+        }
+
+        if (command === "rename") {
+            let ogName = command1;
+            let newName = command2;
+
+            if (command3) {
+                message.channel.send("Team names cannot contain spaces.\nPlease try again with a different name.");
+                return;
+            }
+            if (ogName === "N/A" || ogName === "AFK") {
+                message.channel.send("Team name **" + ogName + "** is not allowed to be changed.");
+                return;
+            }
+            if (newName.length > 15 || newName.length < 2) {
+                message.channel.send("Team names must be between 3 and 15 characters long.\nPlease try again with a different name.");
+                return;
+            }
+            if (!doesTeamnameExist(ogName, message)) {
+                return;
+            }
+            if (doesTeamnameExist(newName, message, false)) {
+                message.channel.send(
+                    "Team **" + newName + "** already exists. Please try again with a different name."
+                );
+                return;
+            }
+
+            renameKey(teams, ogName, newName);
+
+            message.channel.send(
+                "Team **" + ogName + "** has successfully been updated to team **" + newName + "**."
+            );
+        }
+
+        if (command === "link") {
+            let content = args.join(" ");
+            gamelink = content;
+
+            message.channel.send("Link has been updated.");
+        }
+
+        if (command === "create") {
+            let type = command1;
+
+            if (type === "auto") {
+                if (!isNaN(command2) && (parseInt(command2) <= 15 && parseInt(command2) > 1)) {
+                    unassignAllUsers();
+                    removeAllTeams();
+
+                    for (let i = 1; i < parseInt(command2) + 1; i++) {
+                        teams["Team" + i] = {
+                            "users": [],
+                            "count": -1
+                        }
+                    }
+
+                    message.channel.send("**" + command2 + "** teams have been created.");
+                    return
+                } else {
+                    message.channel.send("You must enter an integer value between 2 and 15 to create teams. Please try again.");
+                    return;
+                }
+            }
+
+            if (type === "manual") {
+                args.shift();
+                let checker = [];
+                for (let i = 0; i < args.length; i++) {
+                    if (i % 2) {
+                        if (isNaN(args[i]) || (parseInt(args[i]) < 1 && parseInt(args[i]) != -1)) {
+                            message.channel.send("Every team must have an integer value greater than 1 (or -1 for no limit) representing its max count. Please try again.");
+                            return;
+                        }
+                    } else {
+                        if (args[i] === "N/A" || args[i] === "AFK") {
+                            message.channel.send("Team name **" + args[i] + "** is not allowed as a name.");
+                            return;
+                        }
+                        if (args[i].length > 15 || args[i].length < 2) {
+                            message.channel.send("Team names must be between 3 and 15 characters long.\nPlease try again with a different name.");
+                            return;
+                        }
+                        checker.push(args[i]);
+                    }
+                }
+
+                if (new Set(checker).size !== checker.length) {
+                    message.channel.send("Team names cannot be duplicates.\nPlease try again with a different name.");
+                    return;
+                }
+
+                unassignAllUsers();
+                removeAllTeams();
+                for (let i = 0; i < args.length; i = i + 2) {
+                    teams[args[i]] = {
+                        "users": [],
+                        "count": parseInt(args[i + 1])
+                    }
+                }
+                message.channel.send("**" + checker.length + "** teams have been created.");
+            }
+        }
+
+        if (command === "play") {
+            if (command1 === "codenames") {
                 unassignAllUsers();
                 removeAllTeams();
 
-                for (let i = 1; i < parseInt(command2) + 1; i++) {
-                    teams["Team" + i] = {
-                        "users": [],
-                        "count": -1
-                    }
-                }
-
-                message.channel.send("**" + command2 + "** teams have been created.");
-                return
-            } else {
-                message.channel.send("You must enter an integer value between 2 and 15 to create teams. Please try again.");
-                return;
-            }
-        }
-
-        if (type === "manual") {
-            args.shift();
-            let checker = [];
-            for (let i = 0; i < args.length; i++) {
-                if (i % 2) {
-                    if (isNaN(args[i]) || (parseInt(args[i]) < 1 && parseInt(args[i]) != -1)) {
-                        message.channel.send("Every team must have an integer value greater than 1 (or -1 for no limit) representing its max count. Please try again.");
-                        return;
-                    }
-                } else {
-                    if (args[i] === "N/A" || args[i] === "AFK") {
-                        message.channel.send("Team name **" + args[i] + "** is not allowed as a name.");
-                        return;
-                    }
-                    if (args[i].length > 15 || args[i].length < 2) {
-                        message.channel.send("Team names must be between 3 and 15 characters long.\nPlease try again with a different name.");
-                        return;
-                    }
-                    checker.push(args[i]);
-                }
-            }
-
-            if (new Set(checker).size !== checker.length) {
-                message.channel.send("Team names cannot be duplicates.\nPlease try again with a different name.");
-                return;
-            }
-
-            unassignAllUsers();
-            removeAllTeams();
-            for (let i = 0; i < args.length; i = i + 2) {
-                teams[args[i]] = {
+                teams["RedSpyMaster"] = {
                     "users": [],
-                    "count": parseInt(args[i + 1])
+                    "count": 1
+                }
+                teams["Red"] = {
+                    "users": [],
+                    "count": -1
+                }
+                teams["BlueSpyMaster"] = {
+                    "users": [],
+                    "count": 1
+                }
+                teams["Blue"] = {
+                    "users": [],
+                    "count": -1
+                }
+                message.channel.send("Team Creator has been set up with CodeNames settings.");
+            }
+            if (command1 === "rps") {
+                if (!playerUser[getKeyByValue(playerUser, message.author.id)]) {
+                    message.channel.send("You must be a user to play rps. Please use: **!user **{***user_name***} to create a user.");
+                    return;
+                }
+                let player = getKeyByValue(playerUser, message.author.id);
+                let opponent = command2;
+
+                if (doesUsernameExist(opponent, message)) {
+
+                    let activeRooms = [];
+                    Object.keys(rps).forEach(r => {
+                        activeRooms.push(r);
+                    });
+
+                    let inactiveRooms = [];
+                    for (let i = 1; i < 25; i++) {
+                        if (!activeRooms.includes(i)) inactiveRooms.push(i);
+                    }
+
+                    if (inactiveRooms.length === 0) {
+                        message.channel.send("There are too many rps games happening at once. Please try again later.");
+                        return;
+                    }
+
+                    let rand = inactiveRooms[Math.floor(Math.random() * inactiveRooms.length)];
+                    let options = ["Rock", "Paper", "Scissors"];
+
+                    rps[rand] = {
+                        player: {
+                            "options": shuffleArray(options),
+                            "move": -1
+                        },
+                        opponent: {
+                            "options": shuffleArray(options),
+                            "move": -1
+                        }
+                    };
+
+                    let motal = "Please respond in a common discord server between both players in the following format:\n\n" +
+                        "**!rps** {***challenge_number***} {***option***}\nEx. !rps " + rand + " 2\n\n" +
+                        "Challenge Number: **" + rand + "**\n";
+
+                    client.users.get(playerUser[player]).send(
+                            "You have challenged **" + opponent + "** to Rock Paper Scissors!\n" +
+                            motal + displayOptions(rand, player));
+
+                    client.users.get(playerUser[opponent]).send(
+                            "You have been challenged to Rock Paper Scissors By **" + player + "**!\n" +
+                            motal + displayOptions(rand, opponent) +
+                            "You can also reply the following to decline the challenge:\n" +
+                            "!rps decline " + rand
+                        );
+                    message.channel.send("You have challenged **" + opponent + "** to Rock Paper Scissors!");
                 }
             }
-            message.channel.send("**" + checker.length + "** teams have been created.");
+
+            function displayOptions(room, username) {
+                let total = "Options:\n**";
+                let count = 1;
+
+                rps[room][username]["options"].forEach(option => {
+                    total += "(" + count + ") " + option + "\n";
+                    count++;
+                });
+
+                total += "**\n";
+
+                return total;
+            }
         }
-    }
 
-    if (command === "play") {
-        if (command1 === "codenames") {
-            unassignAllUsers();
-            removeAllTeams();
+        if (command === "rps") {
+            if (command1 === "decline") {
+                let room = parseInt(command2);
+                if (!validRpsRoom(room, message.author.id)) return;
 
-            teams["RedSpyMaster"] = {
-                "users": [],
-                "count": 1
-            }
-            teams["Red"] = {
-                "users": [],
-                "count": -1
-            }
-            teams["BlueSpyMaster"] = {
-                "users": [],
-                "count": 1
-            }
-            teams["Blue"] = {
-                "users": [],
-                "count": -1
-            }
-            message.channel.send("Team Creator has been set up with CodeNames settings.");
-        }
-    }
+                let str = "Rps Challenge **" + room + "** has been cancelled.";
 
-    if (command === "random") {
-        if (command1 === "user") {
-            message.channel.send("Here is a randomly selected user: **" + shuffleArray(Object.keys(playerUser).slice())[0] + "**.");
-        }
-        if (command1 === "number") {
-            let lower = parseInt(command2);
-            let upper = parseInt(command3);
-
-            if (!isNaN(lower) && !isNaN(upper) && lower > 0 && upper > lower) {
-                message.channel.send("Here is a randomly selected number: **" + (Math.floor(Math.random() * (upper - lower + 1)) + lower) + "**.");
+                message.channel.send(str);
+                Object.keys(rps[room]).forEach(user => {
+                    if (message.author.id != player[user]) {
+                        client.users.get(playerUser[user]).send(str);
+                    }
+                });
+                delete rps[room];
             } else {
-                message.channel.send("Not a valid input. Please try again.");
+                let room = parseInt(command1);
+                let move = parseInt(command2);
+
+                if (!validRpsRoom(room, message.author.id)) return;
+                if (isNaN(move) || move > 3 || move < 1) {
+                    message.channel.send("Not a valid move. Please try again.");
+                    return;
+                }
+
+                rps[room][getKeyByValue(playerUser, message.author.id)]["move"] = move - 1;
+                let moveCount = 0;
+                rps[room].forEach(p => {
+                    if (p["move"] != -1) moveCount++;
+                });
+
+                if (moveCount == 2) {
+                    let total = "The results are in for challenge **" + room + "**!\n\n";
+                    rps[room].forEach(p => {
+                        total += "**" + getKeyByValue(p) + "** has played: **" + p["options"][p["move"]] + "**\n"
+                    });
+                    let winner = playRps(room);
+                    if (winner === -1) {
+                        winner = "a tie";
+                    }
+                    total += "\nThe winner is... **" + winner + "**!";
+
+                    message.channel.send(total);
+                    Object.keys(rps[room]).forEach(user => {
+                        if (message.author.id != player[user]) {
+                            client.users.get(playerUser[user]).send(total);
+                        }
+                    });
+                    delete rps[room];
+                } else {
+                    message.channel.send("You have made your move for Challenge **" + room + "**!\nPlease wait for your opponent to play back.");
+                    return;
+                }
             }
         }
+
+        if (command === "random") {
+            if (command1 === "user") {
+                message.channel.send("Here is a randomly selected user: **" + shuffleArray(Object.keys(playerUser).slice())[0] + "**.");
+            }
+            if (command1 === "number") {
+                let lower = parseInt(command2);
+                let upper = parseInt(command3);
+
+                if (!isNaN(lower) && !isNaN(upper) && lower > 0 && upper > lower) {
+                    message.channel.send("Here is a randomly selected number: **" + (Math.floor(Math.random() * (upper - lower + 1)) + lower) + "**.");
+                } else {
+                    message.channel.send("Not a valid input. Please try again.");
+                }
+            }
+        }
+
+    } catch (error) {
+        console.log(error);
     }
+
 });
 
 function getKeyByValue(object, value) {
@@ -469,6 +602,42 @@ function shuffleArray(array) {
     }
 
     return array;
+}
+
+function validRpsRoom(room, author, msg = true) {
+    let valid = true;
+    if (isNaN(parseInt(room)) || !rps[room]) {
+        if (msg) message.channel.send("Not a valid challenge number. Please try again.");
+        valid = false;
+    }
+    if (!Object.keys(rps[room]).includes(getKeyByValue(playerUser, author))) {
+        if (msg) message.channel.send("You are not a part of this rps game. Please try again.");
+        valid = false;
+    }
+
+    return valid;
+}
+
+function playRps(room) {
+    let p1 = Object.keys(rps[room])[0];
+    let p2 = Object.keys(rps[room])[1];
+    let p1Move = rps[room][p1]["options"][rps[room][p1]["move"]];
+    let p2Move = rps[room][p2]["options"][rps[room][p2]["move"]];
+
+    if (p1Move === p2Move) {
+        return -1;
+    }
+
+    if (p1Move === "Rock" && p2Move === "Scissors" ||
+        p1Move === "Paper" && p2Move === "Rock" ||
+        p1Move === "Scissors" && p2Move === "Paper") {
+
+        return p1;
+    } else {
+        return p2;
+    }
+
+
 }
 
 client.login(config.token);
