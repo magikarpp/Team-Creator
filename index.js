@@ -297,15 +297,15 @@ client.on("message", async message => {
                         return;
                     }
 
-                    let rand = inactiveRooms[Math.floor(Math.random() * inactiveRooms.length)];
+                    let rand = shuffleArray(inactiveRooms)[0];
                     let options = ["Rock", "Paper", "Scissors"];
 
                     rps[rand] = {
-                        player: {
+                        [player]: {
                             "options": shuffleArray(options),
                             "move": -1
                         },
-                        opponent: {
+                        [opponent]: {
                             "options": shuffleArray(options),
                             "move": -1
                         }
@@ -313,18 +313,22 @@ client.on("message", async message => {
 
                     let motal = "Please respond in a common discord server between both players in the following format:\n\n" +
                         "**!rps** {***challenge_number***} {***option***}\nEx. !rps " + rand + " 2\n\n" +
-                        "Challenge Number: **" + rand + "**\n";
+                        "Challenge Number:\n**" + rand + "**\n";
 
-                    client.users.get(playerUser[player]).send(
+                    client.users.fetch(playerUser[player]).then(user => {
+                        user.send(
                             "You have challenged **" + opponent + "** to Rock Paper Scissors!\n" +
                             motal + displayOptions(rand, player));
+                    });
 
-                    client.users.get(playerUser[opponent]).send(
+                    client.users.fetch(playerUser[opponent]).then((user) => {
+                        user.send(
                             "You have been challenged to Rock Paper Scissors By **" + player + "**!\n" +
                             motal + displayOptions(rand, opponent) +
                             "You can also reply the following to decline the challenge:\n" +
                             "!rps decline " + rand
                         );
+                    });
                     message.channel.send("You have challenged **" + opponent + "** to Rock Paper Scissors!");
                 }
             }
@@ -354,7 +358,9 @@ client.on("message", async message => {
                 message.channel.send(str);
                 Object.keys(rps[room]).forEach(user => {
                     if (message.author.id != player[user]) {
-                        client.users.get(playerUser[user]).send(str);
+                        client.users.fetch(playerUser[user]).then((user) => {
+                            user.send(str);
+                        });
                     }
                 });
                 delete rps[room];
@@ -362,22 +368,27 @@ client.on("message", async message => {
                 let room = parseInt(command1);
                 let move = parseInt(command2);
 
+                console.log("room: " + room + " move: " + move);
+
                 if (!validRpsRoom(room, message.author.id)) return;
                 if (isNaN(move) || move > 3 || move < 1) {
                     message.channel.send("Not a valid move. Please try again.");
                     return;
                 }
 
+                console.log("got past the base checks.")
+
                 rps[room][getKeyByValue(playerUser, message.author.id)]["move"] = move - 1;
                 let moveCount = 0;
-                rps[room].forEach(p => {
-                    if (p["move"] != -1) moveCount++;
+                Object.keys(rps[room]).forEach(p => {
+                    if (rps[room][p]["move"] != -1) moveCount++;
                 });
 
-                if (moveCount == 2) {
+                if (moveCount === 2) {
                     let total = "The results are in for challenge **" + room + "**!\n\n";
-                    rps[room].forEach(p => {
-                        total += "**" + getKeyByValue(p) + "** has played: **" + p["options"][p["move"]] + "**\n"
+                    Object.keys(rps[room]).forEach(p => {
+                        let playobj = rps[room][p];
+                        total += "**" + getKeyByValue(rps[room], playobj) + "** has played: **" + playobj["options"][playobj["move"]] + "**\n"
                     });
                     let winner = playRps(room);
                     if (winner === -1) {
@@ -387,8 +398,10 @@ client.on("message", async message => {
 
                     message.channel.send(total);
                     Object.keys(rps[room]).forEach(user => {
-                        if (message.author.id != player[user]) {
-                            client.users.get(playerUser[user]).send(total);
+                        if (message.author.id != playerUser[user]) {
+                            client.users.fetch(playerUser[user]).then((user) => {
+                                user.send(total);
+                            });
                         }
                     });
                     delete rps[room];
